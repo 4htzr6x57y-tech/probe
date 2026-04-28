@@ -1,0 +1,67 @@
+body {
+    background-color: #0d1117;
+    color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+h1, h2, h3 {
+    color: #58a6ff;
+    margin-bottom: 10px;
+}
+
+.container {
+    background: #161b22;
+    border: 1px solid #30363d;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+input, select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 15px;
+    background: #238636;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #2ea043;
+}
+
+.result-box {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+.section-title {
+    margin-top: 25px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #30363d;
+    color: #79c0ff;
+}
