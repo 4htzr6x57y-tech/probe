@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>渦電流探傷 コイル設計アプリ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+:root {
+–bg:#0d1117; –surface:#161b22; –surface2:#1c2333; –border:#30363d;
+–accent:#58a6ff; –accent2:#3fb950; –accent3:#f78166; –accent4:#d2a8ff;
+–gold:#e3b341; –text:#e6edf3; –muted:#8b949e; –input-bg:#0d1117;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:‘Noto Sans JP’,sans-serif;background:var(–bg);color:var(–text);min-height:100vh;font-size:14px;}
+
+/* ヘッダー */
+.header{background:linear-gradient(135deg,#1a2744 0%,#0d1117 100%);border-bottom:1px solid var(–border);padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
+.header-icon{font-size:20px;}
+.header h1{font-family:‘Rajdhani’,sans-serif;font-size:17px;font-weight:700;color:var(–accent);letter-spacing:1px;}
+.header-sub{font-size:9px;color:var(–muted);margin-left:auto;text-align:right;line-height:1.4;}
+
+/* タブ */
+.tabs{display:flex;background:var(–surface);border-bottom:2px solid var(–border);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:62px;padding:9px 4px;text-align:center;cursor:pointer;font-size:10px;font-weight:600;color:var(–muted);border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}
+.tab:hover{color:var(–text);background:var(–surface2);}
+.tab.active{color:var(–accent);border-bottom-color:var(–accent);}
+.tab-icon{font-size:15px;display:block;margin-bottom:2px;}
+
+/* コンテンツ */
+.content{display:none;padding:14px;max-width:600px;margin:0 auto;}
+.content.active{display:block;}
+
+/* セクション */
+.section{background:var(–surface);border:1px solid var(–border);border-radius:8px;padding:13px;margin-bottom:12px;}
+.section-title{font-family:‘Rajdhani’,sans-serif;font-size:12px;font-weight:700;color:var(–accent);letter-spacing:1px;margin-bottom:11px;text-transform:uppercase;display:flex;align-items:center;gap:6px;}
+
+/* 入力 */
+.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.input-group{display:flex;flex-direction:column;gap:3px;}
+.input-group.full{grid-column:1/-1;}
+.input-label{font-size:10px;color:var(–muted);font-weight:500;}
+.input-row{display:flex;align-items:center;background:var(–input-bg);border:1px solid var(–border);border-radius:6px;overflow:hidden;transition:border-color .2s;}
+.input-row:focus-within{border-color:var(–accent);}
+.input-row input{flex:1;background:none;border:none;outline:none;color:var(–text);font-size:15px;font-weight:600;padding:8px 9px;font-family:‘Rajdhani’,sans-serif;}
+.input-unit{padding:0 9px;font-size:10px;color:var(–accent);font-weight:600;background:var(–surface2);height:100%;display:flex;align-items:center;border-left:1px solid var(–border);}
+
+/* ボタン */
+.calc-btn{width:100%;padding:12px;background:linear-gradient(135deg,#1f6feb,#388bfd);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;font-family:‘Rajdhani’,sans-serif;letter-spacing:1px;cursor:pointer;transition:all .2s;margin-bottom:12px;box-shadow:0 2px 10px rgba(56,139,253,.3);}
+.calc-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(56,139,253,.4);}
+.calc-btn:active{transform:translateY(0);}
+
+/* 結果カード */
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.result-card{background:var(–surface2);border:1px solid var(–border);border-radius:8px;padding:11px;text-align:center;}
+.result-card.highlight{border-color:var(–gold);background:linear-gradient(135deg,#1a1500,#1c2333);}
+.result-card.full{grid-column:1/-1;}
+.result-label{font-size:9px;color:var(–muted);margin-bottom:3px;}
+.result-value{font-family:‘Rajdhani’,sans-serif;font-size:20px;font-weight:700;color:var(–text);}
+.result-value.big{font-size:24px;color:var(–gold);}
+.result-unit{font-size:10px;color:var(–accent);font-weight:600;}
+
+/* テーブル */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
+.data-table th{background:var(–surface2);padding:6px 7px;text-align:left;color:var(–muted);font-size:10px;font-weight:600;border-bottom:1px solid var(–border);}
+.data-table td{padding:7px 7px;border-bottom:1px solid var(–border);font-family:‘Rajdhani’,sans-serif;font-size:13px;font-weight:600;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:var(–surface2);}
+.data-table tr.hl td{background:rgba(227,179,65,.1);color:var(–gold);}
+.z-val{color:var(–accent);}
+.d-val{color:var(–accent4);}
+
+/* 逆算結果 */
+.big-result{background:linear-gradient(135deg,#1a1500,#1c1a00);border:2px solid var(–gold);border-radius:10px;padding:14px;text-align:center;margin-bottom:12px;}
+.big-result-label{font-size:11px;color:var(–muted);margin-bottom:3px;}
+.big-result-value{font-family:‘Rajdhani’,sans-serif;font-size:44px;font-weight:700;color:var(–gold);line-height:1;}
+.big-result-unit{font-size:14px;color:var(–text);font-weight:500;}
+.big-result-sub{font-size:11px;color:var(–muted);margin-top:6px;}
+.big-result-sub span{color:var(–accent2);font-weight:700;}
+
+/* 選択ボタン */
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.choice-btn{padding:11px 6px;border-radius:8px;border:2px solid var(–border);background:var(–surface2);color:var(–muted);font-size:12px;font-weight:700;text-align:center;cursor:pointer;transition:all .2s;}
+.choice-btn:hover{border-color:var(–accent);color:var(–accent);}
+.choice-btn.sel{border-color:var(–accent);background:rgba(88,166,255,.15);color:var(–accent);}
+.choice-btn.sel-g{border-color:var(–accent2);background:rgba(63,185,80,.15);color:var(–accent2);}
+.choice-btn-icon{font-size:20px;display:block;margin-bottom:3px;}
+
+.mat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.mat-btn{padding:8px 6px;border-radius:6px;border:1px solid var(–border);background:var(–surface2);color:var(–muted);font-size:12px;font-weight:600;text-align:center;cursor:pointer;transition:all .2s;}
+.mat-btn:hover{border-color:var(–accent);color:var(–accent);}
+.mat-btn.sel{border-color:var(–gold);background:rgba(227,179,65,.15);color:var(–gold);}
+.mat-sub{font-size:9px;color:var(–muted);font-weight:400;display:block;margin-top:2px;}
+
+/* 周波数バー */
+.freq-bar-wrap{margin:10px 0;}
+.freq-bar-labels{display:flex;justify-content:space-between;font-size:9px;color:var(–muted);margin-bottom:3px;}
+.freq-bar-track{background:var(–surface2);border-radius:4px;height:14px;position:relative;overflow:visible;}
+.freq-bar-fill{height:100%;border-radius:4px;position:absolute;top:0;background:linear-gradient(90deg,#e3b341,#58a6ff);transition:all .5s;}
+.freq-bar-range{font-size:10px;font-weight:700;color:var(–gold);text-align:center;margin-top:3px;}
+
+/* フェライトカード */
+.ferrite-card{background:var(–surface2);border:1px solid var(–border);border-radius:8px;padding:11px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.ferrite-card.mnzn{border-left:3px solid var(–accent2);}
+.ferrite-card.nizn{border-left:3px solid var(–accent);}
+.ferrite-name{font-family:‘Rajdhani’,sans-serif;font-size:17px;font-weight:700;min-width:48px;}
+.ferrite-name.mnzn{color:var(–accent2);}
+.ferrite-name.nizn{color:var(–accent);}
+.ferrite-name.cur{color:var(–gold);}
+.ferrite-info{flex:1;}
+.ferrite-freq{font-size:11px;font-weight:700;color:var(–text);}
+.ferrite-note{font-size:10px;color:var(–muted);margin-top:1px;}
+.suit-badge{font-size:11px;padding:3px 8px;border-radius:10px;font-weight:700;white-space:nowrap;}
+.suit-best{background:rgba(227,179,65,.2);color:var(–gold);}
+.suit-good{background:rgba(63,185,80,.2);color:var(–accent2);}
+.suit-ok{background:rgba(88,166,255,.2);color:var(–accent);}
+.suit-poor{background:rgba(200,200,200,.1);color:var(–muted);}
+
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.filter-btn{padding:4px 11px;border-radius:16px;border:1px solid var(–border);background:var(–surface2);color:var(–muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;}
+.filter-btn.active{background:var(–accent);color:white;border-color:var(–accent);}
+
+/* 情報ボックス */
+.info-box{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.2);border-radius:6px;padding:9px 11px;font-size:11px;color:var(–muted);line-height:1.6;margin-bottom:11px;}
+.info-box strong{color:var(–accent);}
+.warn-box{background:rgba(247,129,102,.08);border:1px solid rgba(247,129,102,.3);border-radius:6px;padding:9px 11px;font-size:11px;color:var(–accent3);line-height:1.6;margin-bottom:11px;}
+.warn-box strong{font-size:12px;}
+.summary-box{border-radius:8px;padding:13px;margin-bottom:10px;border:2px solid var(–gold);background:rgba(227,179,65,.06);}
+.summary-title{font-family:‘Rajdhani’,sans-serif;font-size:14px;font-weight:700;color:var(–gold);margin-bottom:8px;}
+.summary-body{font-size:11px;color:var(–muted);line-height:1.9;}
+.summary-body strong{color:var(–text);}
+
+.step-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(–accent);color:white;font-size:10px;font-weight:700;margin-right:5px;flex-shrink:0;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeIn .3s ease;}
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <span class="header-icon">⚡</span>
+  <h1>ECT COIL DESIGNER</h1>
+  <span class="header-sub">渦電流探傷<br>コイル設計アプリ</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('nav')"><span class="tab-icon">🔍</span>探傷ナビ</div>
+  <div class="tab" onclick="switchTab('cyl')"><span class="tab-icon">⭕</span>円筒形</div>
+  <div class="tab" onclick="switchTab('rect')"><span class="tab-icon">⬜</span>長方形</div>
+  <div class="tab" onclick="switchTab('inv')"><span class="tab-icon">🎯</span>実測逆算</div>
+  <div class="tab" onclick="switchTab('ferrite')"><span class="tab-icon">🧲</span>フェライト</div>
+</div>
+
+<!-- ===== 探傷ナビ ===== -->
+
+<div id="tab-nav" class="content active">
+  <div class="info-box"><strong>使い方：</strong>検査物・深さを入力すると最適な周波数・フェライト・コイル設計値が自動で出ます。</div>
+
+  <div class="section">
+    <div class="section-title"><span class="step-badge">1</span>検査物の磁性</div>
+    <div class="choice-grid">
+      <div class="choice-btn" id="n-btn-non" onclick="navSelMag('non')">
+        <span class="choice-btn-icon">🔵</span>非磁性体<br><small style="font-size:9px;color:var(--muted)">アルミ・銅・SUS304等</small>
+      </div>
+      <div class="choice-btn" id="n-btn-mag" onclick="navSelMag('mag')">
+        <span class="choice-btn-icon">🔴</span>磁性体<br><small style="font-size:9px;color:var(--muted)">鉄・炭素鋼・SUS430等</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="nav-step2" style="display:none">
+    <div class="section-title"><span class="step-badge">2</span>材質を選択</div>
+    <div class="mat-grid" id="nav-mat-grid"></div>
+  </div>
+
+  <div class="section" id="nav-step3" style="display:none">
+    <div class="section-title"><span class="step-badge">3</span>検査条件</div>
+    <div class="input-grid">
+      <div class="input-group">
+        <div class="input-label">検査したい深さ</div>
+        <div class="input-row"><input type="number" id="nav-depth" value="0.5" step="0.1" min="0.01"><span class="input-unit">mm</span></div>
+      </div>
+      <div class="input-group">
+        <div class="input-label">傷の幅（目安）</div>
+        <div class="input-row"><input type="number" id="nav-crack" value="0.1" step="0.05" min="0.01"><span class="input-unit">mm</span></div>
+      </div>
+      <div class="input-group full">
+        <div class="input-label">リフトオフ（プローブ浮き）</div>
+        <div class="input-row"><input type="number" id="nav-liftoff" value="0.1" step="0.05" min="0"><span class="input-unit">mm</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="nav-step4" style="display:none">
+    <div class="section-title"><span class="step-badge">4</span>磁性体の対策</div>
+    <div class="choice-grid">
+      <div class="choice-btn" id="n-btn-sat" onclick="navSelSat('sat')">
+        <span class="choice-btn-icon">🧲</span>磁気飽和あり<br><small style="font-size:9px;color:var(--muted)">永久磁石でμrを下げる</small>
+      </div>
+      <div class="choice-btn" id="n-btn-nosat" onclick="navSelSat('nosat')">
+        <span class="choice-btn-icon">⚡</span>磁気飽和なし<br><small style="font-size:9px;color:var(--muted)">表面のみ探傷</small>
+      </div>
+    </div>
+  </div>
+
+<button class="calc-btn" id="nav-calc-btn" style="display:none" onclick="navCalc()">🔍 最適条件を計算する</button>
+
+  <div id="nav-result" style="display:none" class="fade-in">
+    <div id="nav-mag-warn" class="warn-box" style="display:none"></div>
+
+```
+<div class="section">
+  <div class="section-title">⚡ 推奨周波数帯</div>
+  <div class="result-grid">
+    <div class="result-card highlight full">
+      <div class="result-label">最適周波数</div>
+      <div class="result-value big" id="nv-fopt">—</div>
+      <div class="result-unit" id="nv-fopt-u">kHz</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">下限（深部重視）</div>
+      <div class="result-value" id="nv-flo">—</div>
+      <div class="result-unit" id="nv-flo-u">kHz</div>
+    </div>
+    <div class="result-card">
+      <div class="result-label">上限（表面重視）</div>
+      <div class="result-value" id="nv-fhi">—</div>
+      <div class="result-unit" id="nv-fhi-u">kHz</div>
+    </div>
+  </div>
+  <div class="freq-bar-wrap">
+    <div class="freq-bar-labels"><span>1kHz</span><span>10kHz</span><span>100kHz</span><span>1MHz</span><span>10MHz</span></div>
+    <div class="freq-bar-track"><div class="freq-bar-fill" id="nv-bar"></div></div>
+    <div class="freq-bar-range" id="nv-bar-label"></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">📊 周波数別 浸透深さ</div>
+  <table class="data-table">
+    <thead><tr><th>周波数</th><th>浸透深さ</th><th>深さ比</th><th>判定</th></tr></thead>
+    <tbody id="nv-depth-body"></tbody>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">🧲 推奨フェライト（トミタ電機）</div>
+  <div id="nv-ferrite"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">🔧 コイル設計推奨値</div>
+  <div class="result-grid">
+    <div class="result-card"><div class="result-label">推奨周波数</div><div class="result-value" id="nv-rc-f">—</div><div class="result-unit"></div></div>
+    <div class="result-card"><div class="result-label">推奨線径（上限）</div><div class="result-value" id="nv-rc-w">—</div><div class="result-unit">mm</div></div>
+    <div class="result-card"><div class="result-label">励磁コイル 目標Z</div><div class="result-value">100</div><div class="result-unit">Ω</div></div>
+    <div class="result-card"><div class="result-label">検出コイル 目標Z</div><div class="result-value" id="nv-rc-dz">—</div><div class="result-unit">Ω</div></div>
+  </div>
+</div>
+
+<div class="summary-box">
+  <div class="summary-title">📋 設計まとめ</div>
+  <div class="summary-body" id="nv-summary"></div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ===== 円筒形 ===== -->
+
+<div id="tab-cyl" class="content">
+  <div class="section">
+    <div class="section-title">📐 ボビン寸法</div>
+    <div class="input-grid">
+      <div class="input-group"><div class="input-label">内径</div><div class="input-row"><input type="number" id="c-id" value="1.0" step="0.1"><span class="input-unit">mm</span></div></div>
+      <div class="input-group"><div class="input-label">外径</div><div class="input-row"><input type="number" id="c-od" value="3.0" step="0.1"><span class="input-unit">mm</span></div></div>
+      <div class="input-group"><div class="input-label">巻き長さ</div><div class="input-row"><input type="number" id="c-len" value="2.0" step="0.1"><span class="input-unit">mm</span></div></div>
+      <div class="input-group"><div class="input-label">線径</div><div class="input-row"><input type="number" id="c-wd" value="0.05" step="0.01"><span class="input-unit">mm</span></div></div>
+      <div class="input-group full"><div class="input-label">使用巻き数</div><div class="input-row"><input type="number" id="c-turns" value="300" step="1"><span class="input-unit">T</span></div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">📡 周波数</div>
+    <div class="input-grid">
+      <div class="input-group"><div class="input-label">周波数1</div><div class="input-row"><input type="number" id="c-f1" value="100" step="10"><span class="input-unit">kHz</span></div></div>
+      <div class="input-group"><div class="input-label">周波数2</div><div class="input-row"><input type="number" id="c-f2" value="500" step="10"><span class="input-unit">kHz</span></div></div>
+      <div class="input-group full"><div class="input-label">周波数3</div><div class="input-row"><input type="number" id="c-f3" value="1000" step="10"><span class="input-unit">kHz</span></div></div>
+    </div>
+  </div>
+  <button class="calc-btn" onclick="calcCyl()">⚡ 計算する</button>
+  <div id="cyl-res" style="display:none">
+    <div class="section">
+      <div class="section-title">📦 巻き空間</div>
+      <div class="result-grid">
+        <div class="result-card"><div class="result-label">巻き高さ</div><div class="result-value" id="cr-wh">—</div><div class="result-unit">mm</div></div>
+        <div class="result-card"><div class="result-label">最大層数</div><div class="result-value" id="cr-ml">—</div><div class="result-unit">層</div></div>
+        <div class="result-card"><div class="result-label">1層巻き数</div><div class="result-value" id="cr-pl">—</div><div class="result-unit">本</div></div>
+        <div class="result-card highlight"><div class="result-label">最大巻き数</div><div class="result-value big" id="cr-mt">—</div><div class="result-unit">T</div></div>
+        <div class="result-card"><div class="result-label">コイル外径</div><div class="result-value" id="cr-od">—</div><div class="result-unit">mm</div></div>
+        <div class="result-card"><div class="result-label">インダクタンス</div><div class="result-value" id="cr-l">—</div><div class="result-unit">μH</div></div>
+      </div>
+      <div id="cr-warn" style="display:none;margin-top:8px;padding:7px 10px;background:rgba(247,129,102,.15);border-radius:6px;font-size:11px;color:var(--accent3)"></div>
+    </div>
+    <div class="section">
+      <div class="section-title">⚡ 周波数別インピーダンス</div>
+      <table class="data-table"><thead><tr><th>周波数</th><th>Z (Ω)</th><th>表皮深さ</th><th>線径判定</th></tr></thead><tbody id="cr-freq"></tbody></table>
+    </div>
+    <div class="section">
+      <div class="section-title">🔄 目標100Ω 必要巻き数</div>
+      <table class="data-table"><thead><tr><th>周波数</th><th>必要巻き数</th><th>収納</th><th>層数</th></tr></thead><tbody id="cr-inv"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 長方形 ===== -->
+
+<div id="tab-rect" class="content">
+  <div class="section">
+    <div class="section-title">📐 ボビン寸法（長方形）</div>
+    <div class="input-grid">
+      <div class="input-group"><div class="input-label">内側 縦（短辺）</div><div class="input-row"><input type="number" id="r-ih" value="4.0" step="0.1"><span class="input-unit">mm</span></div></div>
+      <div class="input-group"><div class="input-label">内側 横（長辺）</div><div class="input-row"><input type="number" id="r-iw" value="8.0" step="0.1"><span class="input-unit">mm</span></div></div>
+      <div class="input-group"><div class="input-label">外側 縦（短辺）</div><div class="input-row"><input type="number" id="r-oh" value="6.0" step="0.1"><span class="input-unit">mm</span></div></div>
+      <div class="input-group"><div class="input-label">外側 横（長辺）</div><div class="input-row"><input type="number" id="r-ow" value="10.0" step="0.1"><span class="input-unit">mm</span></div></div>
+      <div class="input-group"><div class="input-label">巻き長さ</div><div class="input-row"><input type="number" id="r-len" value="6.0" step="0.1"><span class="input-unit">mm</span></div></div>
+      <div class="input-group"><div class="input-label">線径</div><div class="input-row"><input type="number" id="r-wd" value="0.05" step="0.01"><span class="input-unit">mm</span></div></div>
+      <div class="input-group full"><div class="input-label">使用巻き数</div><div class="input-row"><input type="number" id="r-turns" value="300" step="1"><span class="input-unit">T</span></div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">📡 周波数</div>
+    <div class="input-grid">
+      <div class="input-group"><div class="input-label">周波数1</div><div class="input-row"><input type="number" id="r-f1" value="100" step="10"><span class="input-unit">kHz</span></div></div>
+      <div class="input-group"><div class="input-label">周波数2</div><div class="input-row"><input type="number" id="r-f2" value="500" step="10"><span class="input-unit">kHz</span></div></div>
+      <div class="input-group full"><div class="input-label">周波数3</div><div class="input-row"><input type="number" id="r-f3" value="1000" step="10"><span class="input-unit">kHz</span></div></div>
+    </div>
+  </div>
+  <button class="calc-btn" onclick="calcRect()">⚡ 計算する</button>
+  <div id="rect-res" style="display:none">
+    <div class="section">
+      <div class="section-title">📦 巻き空間</div>
+      <div class="result-grid">
+        <div class="result-card"><div class="result-label">実効巻き高さ</div><div class="result-value" id="rr-wh">—</div><div class="result-unit">mm</div></div>
+        <div class="result-card"><div class="result-label">最大層数</div><div class="result-value" id="rr-ml">—</div><div class="result-unit">層</div></div>
+        <div class="result-card"><div class="result-label">1層巻き数</div><div class="result-value" id="rr-pl">—</div><div class="result-unit">本</div></div>
+        <div class="result-card highlight"><div class="result-label">最大巻き数</div><div class="result-value big" id="rr-mt">—</div><div class="result-unit">T</div></div>
+        <div class="result-card"><div class="result-label">外形 縦×横</div><div class="result-value" id="rr-size" style="font-size:15px">—</div><div class="result-unit">mm</div></div>
+        <div class="result-card"><div class="result-label">インダクタンス</div><div class="result-value" id="rr-l">—</div><div class="result-unit">μH</div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">⚡ 周波数別インピーダンス</div>
+      <table class="data-table"><thead><tr><th>周波数</th><th>Z (Ω)</th><th>表皮深さ</th><th>線径判定</th></tr></thead><tbody id="rr-freq"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 実測逆算 ===== -->
+
+<div id="tab-inv" class="content">
+  <div class="info-box"><strong>使い方：</strong>試し巻き → LCRメータで実測 → 入力 → 目標巻き数が一発で出ます！<br>空芯・フェライトあり・どんな形状でも対応。</div>
+  <div class="section">
+    <div class="section-title">🔬 実測値を入力</div>
+    <div class="input-grid">
+      <div class="input-group"><div class="input-label">試し巻き数 N₁</div><div class="input-row"><input type="number" id="i-n1" value="50" step="1"><span class="input-unit">T</span></div></div>
+      <div class="input-group"><div class="input-label">実測 Z₁</div><div class="input-row"><input type="number" id="i-z1" value="25" step="0.1"><span class="input-unit">Ω</span></div></div>
+      <div class="input-group"><div class="input-label">測定周波数</div><div class="input-row"><input type="number" id="i-f" value="100" step="10"><span class="input-unit">kHz</span></div></div>
+      <div class="input-group"><div class="input-label">目標 Z目標</div><div class="input-row"><input type="number" id="i-zt" value="100" step="1"><span class="input-unit">Ω</span></div></div>
+      <div class="input-group full"><div class="input-label">許容誤差</div><div class="input-row"><input type="number" id="i-tol" value="10" step="1"><span class="input-unit">%</span></div></div>
+    </div>
+  </div>
+  <button class="calc-btn" onclick="calcInv()">🎯 目標巻き数を計算</button>
+  <div id="inv-res" style="display:none">
+    <div class="big-result">
+      <div class="big-result-label">目標巻き数</div>
+      <div class="big-result-value" id="ir-n">—</div>
+      <div class="big-result-unit">ターン</div>
+      <div class="big-result-sub">検証: Z = <span id="ir-zv">—</span> Ω（誤差 <span id="ir-err">—</span>%）</div>
+    </div>
+    <div class="result-grid" style="margin-bottom:12px">
+      <div class="result-card"><div class="result-label">実測 L₁</div><div class="result-value" id="ir-l1">—</div><div class="result-unit">μH</div></div>
+      <div class="result-card"><div class="result-label">目標 L</div><div class="result-value" id="ir-lt">—</div><div class="result-unit">μH</div></div>
+      <div class="result-card"><div class="result-label">切り上げ版</div><div class="result-value" id="ir-nu">—</div><div class="result-unit">T</div></div>
+      <div class="result-card"><div class="result-label">切り捨て版</div><div class="result-value" id="ir-nd">—</div><div class="result-unit">T</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">📊 ±10ターン 微調整一覧</div>
+      <table class="data-table">
+        <thead><tr><th>巻き数</th><th>Z (Ω)</th><th>誤差(%)</th><th>判定</th></tr></thead>
+        <tbody id="ir-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== フェライト ===== -->
+
+<div id="tab-ferrite" class="content">
+  <div class="section">
+    <div class="section-title">🔍 絞り込み</div>
+    <div class="filter-row" id="f-band-row">
+      <div class="filter-btn active" onclick="fFilter('band','all',this)">全て</div>
+      <div class="filter-btn" onclick="fFilter('band','100k',this)">〜100kHz</div>
+      <div class="filter-btn" onclick="fFilter('band','1m',this)">〜1MHz</div>
+      <div class="filter-btn" onclick="fFilter('band','10m',this)">〜10MHz</div>
+    </div>
+    <div class="filter-row" id="f-type-row">
+      <div class="filter-btn active" onclick="fFilter('type','all',this)">MnZn+NiZn</div>
+      <div class="filter-btn" onclick="fFilter('type','mnzn',this)">MnZn系</div>
+      <div class="filter-btn" onclick="fFilter('type','nizn',this)">NiZn系</div>
+    </div>
+  </div>
+  <div id="f-list"></div>
+</div>
+
+<script>
+const MU0 = 4*Math.PI*1e-7;
+const f2 = v => isNaN(v)?'—':v.toFixed(2);
+const f3 = v => isNaN(v)?'—':v.toFixed(3);
+const f1 = v => isNaN(v)?'—':v.toFixed(1);
+const fi = v => isNaN(v)?'—':Math.round(v).toLocaleString();
+
+function fmtF(kHz){
+  if(kHz>=1000) return {v:(kHz/1000).toFixed(1),u:'MHz'};
+  if(kHz>=1)    return {v:Math.round(kHz)+'',u:'kHz'};
+  return {v:(kHz*1000).toFixed(0),u:'Hz'};
+}
+function delta_mm(f_Hz,mur,sigma){ return 503/Math.sqrt(f_Hz*mur*sigma)*1000; }
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['nav','cyl','rect','inv','ferrite'][i]===id));
+  document.querySelectorAll('.content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ===== 材質データ =====
+const MATS = {
+  non:[
+    {id:'al',   name:'アルミ',      sigma:3.5e7, mur:1,   note:'A2024・A7075等'},
+    {id:'cu',   name:'銅',          sigma:5.8e7, mur:1,   note:'純銅・黄銅'},
+    {id:'ti',   name:'チタン',      sigma:0.18e7,mur:1,   note:'Ti-6Al-4V等'},
+    {id:'sus304',name:'SUS304',     sigma:0.14e7,mur:1,   note:'オーステナイト系'},
+    {id:'mg',   name:'マグネシウム',sigma:2.2e7, mur:1,   note:'Mg合金'},
+    {id:'ni_n', name:'Ni合金',      sigma:0.8e7, mur:1,   note:'インコネル等'},
+  ],
+  mag:[
+    {id:'steel',name:'炭素鋼',      sigma:5e6,   mur:200, note:'S45C・SS400等'},
+    {id:'iron', name:'鉄（純鉄）',  sigma:1e7,   mur:1000,note:'純鉄'},
+    {id:'sus430',name:'SUS430',     sigma:1.5e6, mur:600, note:'フェライト系'},
+    {id:'ni_m', name:'ニッケル',    sigma:1.4e7, mur:250, note:'純ニッケル'},
+  ]
+};
+
+// ===== フェライトデータ =====
+const FERRITES = [
+  {name:'2H1', type:'mnzn',mu:15000,fmax_MHz:0.01,suit:'best',note:'超高μ電源トランス'},
+  {name:'2G4', type:'mnzn',mu:5300, fmax_MHz:0.1, suit:'ok',  note:'★現在お使いの材質',cur:true},
+  {name:'2G8', type:'mnzn',mu:2300, fmax_MHz:0.5, suit:'ok',  note:'中低周波'},
+  {name:'2H6', type:'mnzn',mu:800,  fmax_MHz:1.0, suit:'ok',  note:'近接センサ低周波'},
+  {name:'3A8', type:'nizn',mu:1500, fmax_MHz:1.0, suit:'good',note:'広帯域EMI'},
+  {name:'3A7', type:'nizn',mu:2000, fmax_MHz:1.0, suit:'good',note:'広帯域EMI'},
+  {name:'3A4', type:'nizn',mu:800,  fmax_MHz:3.0, suit:'good',note:'コモンモードフィルタ'},
+  {name:'4A3', type:'nizn',mu:400,  fmax_MHz:5.0, suit:'best',note:'渦電流探傷に最適★'},
+  {name:'4D4', type:'nizn',mu:400,  fmax_MHz:3.0, suit:'good',note:'汎用高周波'},
+  {name:'5K',  type:'nizn',mu:250,  fmax_MHz:10.0,suit:'good',note:'高周波'},
+  {name:'6D8', type:'nizn',mu:73,   fmax_MHz:10.0,suit:'best',note:'近接センサ・表面探傷★'},
+  {name:'6B2', type:'nizn',mu:30,   fmax_MHz:50.0,suit:'good',note:'超高周波'},
+  {name:'7B2', type:'nizn',mu:13,   fmax_MHz:100, suit:'good',note:'超高周波100MHz'},
+];
+const SUIT_LABEL = {best:['◎ 最適','suit-best'],good:['○ 適合','suit-good'],ok:['△ 可','suit-ok'],poor:['× 不向き','suit-poor']};
+
+// ===== 探傷ナビ =====
+let navState = {magType:null, mat:null, sat:null};
+
+function navSelMag(t){
+  navState={magType:t,mat:null,sat:null};
+  document.getElementById('n-btn-non').className='choice-btn'+(t==='non'?' sel':'');
+  document.getElementById('n-btn-mag').className='choice-btn'+(t==='mag'?' sel':'');
+  const grid=document.getElementById('nav-mat-grid');
+  grid.innerHTML='';
+  MATS[t].forEach(m=>{
+    const b=document.createElement('div');
+    b.className='mat-btn'; b.id='nm-'+m.id;
+    b.innerHTML=`<strong>${m.name}</strong><span class="mat-sub">${m.note}</span>`;
+    b.onclick=()=>navSelMat(m,t);
+    grid.appendChild(b);
+  });
+  document.getElementById('nav-step2').style.display='block';
+  document.getElementById('nav-step3').style.display='none';
+  document.getElementById('nav-step4').style.display='none';
+  document.getElementById('nav-calc-btn').style.display='none';
+  document.getElementById('nav-result').style.display='none';
+}
+
+function navSelMat(m,t){
+  navState.mat=m; navState.sat=null;
+  document.querySelectorAll('.mat-btn').forEach(b=>b.classList.remove('sel'));
+  document.getElementById('nm-'+m.id).classList.add('sel');
+  document.getElementById('nav-step3').style.display='block';
+  if(t==='mag'){
+    document.getElementById('nav-step4').style.display='block';
+    document.getElementById('nav-calc-btn').style.display='none';
+  } else {
+    document.getElementById('nav-step4').style.display='none';
+    document.getElementById('nav-calc-btn').style.display='block';
+  }
+  document.getElementById('nav-result').style.display='none';
+}
+
+function navSelSat(s){
+  navState.sat=s;
+  document.getElementById('n-btn-sat').className='choice-btn'+(s==='sat'?' sel-g':'');
+  document.getElementById('n-btn-nosat').className='choice-btn'+(s==='nosat'?' sel':'');
+  document.getElementById('nav-calc-btn').style.display='block';
+}
+
+function navCalc(){
+  if(!navState.mat) return;
+  const depth=parseFloat(document.getElementById('nav-depth').value);
+  const liftoff=parseFloat(document.getElementById('nav-liftoff').value);
+  let m={...navState.mat};
+  if(navState.magType==='mag' && navState.sat==='sat') m.mur=Math.max(1,m.mur/100);
+
+  const d_m=depth/1000;
+  const f_opt=Math.pow(503/d_m,2)/(m.mur*m.sigma);
+  const f_lo =Math.pow(503/(d_m*2),2)/(m.mur*m.sigma);
+  const f_hi =Math.pow(503/(d_m*0.5),2)/(m.mur*m.sigma);
+  const fok=fmtF(f_opt/1000), flo=fmtF(f_lo/1000), fhi=fmtF(f_hi/1000);
+
+  document.getElementById('nv-fopt').textContent=fok.v;
+  document.getElementById('nv-fopt-u').textContent=fok.u;
+  document.getElementById('nv-flo').textContent=flo.v;
+  document.getElementById('nv-flo-u').textContent=flo.u;
+  document.getElementById('nv-fhi').textContent=fhi.v;
+  document.getElementById('nv-fhi-u').textContent=fhi.u;
+
+  // バー
+  const lMin=Math.log10(1),lMax=Math.log10(10000);
+  const lLo=Math.log10(Math.max(1,f_lo/1000)), lHi=Math.log10(Math.min(10000,f_hi/1000));
+  const bl=((lLo-lMin)/(lMax-lMin)*100).toFixed(1);
+  const bw=((lHi-lLo)/(lMax-lMin)*100).toFixed(1);
+  document.getElementById('nv-bar').style.cssText=`left:${bl}%;width:${bw}%`;
+  document.getElementById('nv-bar-label').textContent=`推奨帯域: ${flo.v}${flo.u} 〜 ${fhi.v}${fhi.u}`;
+
+  // 浸透深さテーブル
+  const freqs=[1,2,5,10,20,50,100,200,500,1000,2000,5000,10000];
+  let tbody='';
+  freqs.forEach(fk=>{
+    const dv=delta_mm(fk*1000,m.mur,m.sigma);
+    const inRange=(fk*1000>=f_lo*0.7 && fk*1000<=f_hi*1.3);
+    const judge=dv>=depth*0.8&&dv<=depth*3?'✅':'—';
+    const ratio=dv>=depth?(dv/depth).toFixed(1)+'倍':(dv/depth*100).toFixed(0)+'%';
+    tbody+=`<tr class="${inRange?'hl':''}"><td>${fk>=1000?(fk/1000)+'MHz':fk+'kHz'}</td><td class="d-val">${dv.toFixed(3)} mm</td><td>${ratio}</td><td>${judge}</td></tr>`;
+  });
+  document.getElementById('nv-depth-body').innerHTML=tbody;
+
+  // フェライト推奨
+  const fopt_MHz=f_opt/1e6;
+  const recs=FERRITES.filter(f=>f.fmax_MHz>=fopt_MHz*0.5).slice(0,4);
+  document.getElementById('nv-ferrite').innerHTML=recs.map(f=>{
+    const [sl,sc]=SUIT_LABEL[f.suit]||['—',''];
+    return `<div class="ferrite-card ${f.type}">
+      <div class="ferrite-name ${f.type}${f.cur?' cur':''}">${f.cur?'◆':f.suit==='best'?'★':''}${f.name}</div>
+      <div class="ferrite-info"><div class="ferrite-freq">${f.type==='mnzn'?'MnZn':'NiZn'}　μ=${f.mu.toLocaleString()}　〜${f.fmax_MHz>=1?f.fmax_MHz+'MHz':f.fmax_MHz*1000+'kHz'}</div><div class="ferrite-note">${f.note}</div></div>
+      <div class="suit-badge ${sc}">${sl}</div>
+    </div>`;
+  }).join('');
+
+  // コイル推奨値
+  // 推奨線径 = 表皮深さ×2（実際の材質の導電率を使用）
+  // ただし線材は銅線なので銅の表皮深さで計算
+  
+  // 銅線の表皮深さ（mm）= 0.066/√(f_Hz) * 1000
+  const skinDepth_mm = 66.04/Math.sqrt(f_opt); // 銅線表皮深さ(mm) δ=66.04/√f_Hz
+  document.getElementById('nv-rc-f').textContent=fok.v+fok.u;
+  document.getElementById('nv-rc-w').textContent=skinDepth_mm.toFixed(3);
+  document.getElementById('nv-rc-dz').textContent=f_opt>500000?200:100;
+
+  // 磁性体警告
+  const warnEl=document.getElementById('nav-mag-warn');
+  if(navState.magType==='mag'){
+    warnEl.style.display='block';
+    warnEl.innerHTML=navState.sat==='sat'
+      ?'<strong>🧲 磁気飽和あり：</strong>永久磁石でμrを約1/100に低減。非磁性体に近い状態で探傷できます。'
+      :'<strong>⚠️ 磁気飽和なし：</strong>μrが大きいため浸透深さが極めて浅くなります。表面（〜0.1mm）のみの探傷となります。';
+  } else { warnEl.style.display='none'; }
+
+  // まとめ
+  const satNote=navState.magType==='mag'?(navState.sat==='sat'?'磁気飽和あり（永久磁石使用）。':'磁気飽和なし → 表面のみ。'):'';
+  document.getElementById('nv-summary').innerHTML=
+    `<strong>検査物：</strong>${m.name}（${navState.magType==='mag'?'磁性体':'非磁性体'}）${satNote}<br>
+     <strong>目標深さ：</strong>${depth}mm<br>
+     <strong>最適周波数：</strong>${fok.v}${fok.u}（${flo.v}${flo.u}〜${fhi.v}${fhi.u}）<br>
+     <strong>推奨フェライト：</strong>${recs.map(f=>f.name).join('、')}<br>
+     <strong>推奨線径：</strong>φ${skinDepth_mm.toFixed(3)}mm以下（銅線・表皮効果考慮）<br>
+     <strong>次のステップ：</strong>「円筒形」または「長方形」タブでコイルを設計してください。`;
+
+  document.getElementById('nav-result').style.display='block';
+  document.getElementById('nav-result').className='fade-in';
+  setTimeout(()=>window.scrollTo({top:document.getElementById('nav-result').offsetTop-16,behavior:'smooth'}),50);
+}
+
+// ===== 円筒形 =====
+function calcCyl(){
+  const id=+document.getElementById('c-id').value, od=+document.getElementById('c-od').value;
+  const len=+document.getElementById('c-len').value, wd=+document.getElementById('c-wd').value;
+  const N=+document.getElementById('c-turns').value;
+  const fs=[+document.getElementById('c-f1').value,+document.getElementById('c-f2').value,+document.getElementById('c-f3').value];
+  const wh=(od-id)/2, ml=Math.floor(wh/wd), pl=Math.floor(len/wd), mt=ml*pl;
+  const avgR=(id/2+od/2)/2/1000, area=Math.PI*avgR*avgR;
+  const coilOD=id+2*ml*wd, L=MU0*N*N*area/(len/1000);
+  document.getElementById('cr-wh').textContent=f2(wh);
+  document.getElementById('cr-ml').textContent=ml;
+  document.getElementById('cr-pl').textContent=pl;
+  document.getElementById('cr-mt').textContent=mt.toLocaleString();
+  document.getElementById('cr-od').textContent=f2(coilOD);
+  document.getElementById('cr-l').textContent=f3(L*1e6);
+  const w=document.getElementById('cr-warn');
+  if(N>mt){w.style.display='block';w.textContent='⚠️ 巻き数が最大値を超えています！';}else{w.style.display='none';}
+  let fb='',ib='';
+  fs.forEach(f=>{
+    const Z=2*Math.PI*f*1000*L, d=503/Math.sqrt(f*1000*1*5.8e7)*1000;
+    const lv=Z<50?'📉低い':Z>500?'📈高い':'✅良好';
+    const jd=wd<=d*2?'✅':'⚠️表皮';
+    fb+=`<tr><td>${f>=1000?f/1000+'MHz':f+'kHz'}</td><td class="z-val">${f1(Z)}</td><td class="d-val">${f3(d)}mm</td><td>${jd}</td></tr>`;
+    const Nt=Math.round(Math.sqrt(100*(len/1000)/(2*Math.PI*f*1000*MU0*area)));
+    const ok=Nt<=mt, ly=Math.ceil(Nt/pl);
+    ib+=`<tr><td>${f>=1000?f/1000+'MHz':f+'kHz'}</td><td class="z-val">${Nt.toLocaleString()}T</td><td>${ok?'✅':'❌'}</td><td>${ly}層</td></tr>`;
+  });
+  document.getElementById('cr-freq').innerHTML=fb;
+  document.getElementById('cr-inv').innerHTML=ib;
+  document.getElementById('cyl-res').style.display='block';
+}
+
+// ===== 長方形 =====
+function calcRect(){
+  const ih=+document.getElementById('r-ih').value, iw=+document.getElementById('r-iw').value;
+  const oh=+document.getElementById('r-oh').value, ow=+document.getElementById('r-ow').value;
+  const len=+document.getElementById('r-len').value, wd=+document.getElementById('r-wd').value;
+  const N=+document.getElementById('r-turns').value;
+  const fs=[+document.getElementById('r-f1').value,+document.getElementById('r-f2').value,+document.getElementById('r-f3').value];
+  const eff=Math.min((oh-ih)/2,(ow-iw)/2), ml=Math.floor(eff/wd), pl=Math.floor(len/wd), mt=ml*pl;
+  const area=((ih+oh)/2/1000)*((iw+ow)/2/1000);
+  const L=MU0*N*N*area/(len/1000);
+  document.getElementById('rr-wh').textContent=f2(eff);
+  document.getElementById('rr-ml').textContent=ml;
+  document.getElementById('rr-pl').textContent=pl;
+  document.getElementById('rr-mt').textContent=mt.toLocaleString();
+  document.getElementById('rr-size').textContent=f2(ih+2*ml*wd)+'×'+f2(iw+2*ml*wd);
+  document.getElementById('rr-l').textContent=f3(L*1e6);
+  let fb='';
+  fs.forEach(f=>{
+    const Z=2*Math.PI*f*1000*L, d=503/Math.sqrt(f*1000*1*5.8e7)*1000;
+    const jd=wd<=d*2?'✅':'⚠️表皮';
+    fb+=`<tr><td>${f>=1000?f/1000+'MHz':f+'kHz'}</td><td class="z-val">${f1(Z)}</td><td class="d-val">${f3(d)}mm</td><td>${jd}</td></tr>`;
+  });
+  document.getElementById('rr-freq').innerHTML=fb;
+  document.getElementById('rect-res').style.display='block';
+}
+
+// ===== 実測逆算 =====
+function calcInv(){
+  const N1=+document.getElementById('i-n1').value, Z1=+document.getElementById('i-z1').value;
+  const f=+document.getElementById('i-f').value, Zt=+document.getElementById('i-zt').value;
+  const tol=+document.getElementById('i-tol').value;
+  const L1=Z1/(2*Math.PI*f*1000)*1e6, Lt=Zt/(2*Math.PI*f*1000)*1e6;
+  const Nt=Math.round(N1*Math.sqrt(Zt/Z1)), Nu=Math.ceil(N1*Math.sqrt(Zt/Z1)), Nd=Math.floor(N1*Math.sqrt(Zt/Z1));
+  const Zv=Z1*(Nt/N1)**2, err=Math.abs(Zv-Zt)/Zt*100;
+  document.getElementById('ir-n').textContent=Nt.toLocaleString();
+  document.getElementById('ir-zv').textContent=f1(Zv);
+  document.getElementById('ir-err').textContent=f1(err);
+  document.getElementById('ir-l1').textContent=f3(L1);
+  document.getElementById('ir-lt').textContent=f3(Lt);
+  document.getElementById('ir-nu').textContent=Nu.toLocaleString();
+  document.getElementById('ir-nd').textContent=Nd.toLocaleString();
+  let rows='';
+  for(let i=-10;i<=10;i++){
+    const n=Math.max(1,Nt+i), z=Z1*(n/N1)**2, e=Math.abs(z-Zt)/Zt*100, ok=e<=tol;
+    const dir=z>Zt?'▲':'▼';
+    rows+=`<tr class="${i===0?'hl':''}"><td>${n.toLocaleString()}</td><td>${f1(z)}</td><td>${f1(e)}</td><td>${ok?'<span style="color:var(--accent2)">✅</span>':dir}</td></tr>`;
+  }
+  document.getElementById('ir-table').innerHTML=rows;
+  document.getElementById('inv-res').style.display='block';
+}
+
+// ===== フェライト =====
+let fBand='all', fType='all';
+function fFilter(key,val,el){
+  const rowId=key==='band'?'f-band-row':'f-type-row';
+  document.getElementById(rowId).querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(key==='band') fBand=val; else fType=val;
+  renderFerrite();
+}
+const bandOrder={'all':0,'100k':2,'1m':4,'10m':8};
+function renderFerrite(){
+  const list=document.getElementById('f-list');
+  const filtered=FERRITES.filter(f=>{
+    const fMHz=f.fmax_MHz;
+    const bandOk=fBand==='all'||(fBand==='100k'&&fMHz>=0.1)||(fBand==='1m'&&fMHz>=1)||(fBand==='10m'&&fMHz>=10);
+    const typeOk=fType==='all'||f.type===fType;
+    return bandOk&&typeOk;
+  });
+  if(!filtered.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:30px">条件に合う材質なし</div>';return;}
+  list.innerHTML=filtered.map(f=>{
+    const [sl,sc]=SUIT_LABEL[f.suit]||['—',''];
+    const fmaxStr=f.fmax_MHz>=1?f.fmax_MHz+'MHz':f.fmax_MHz*1000+'kHz';
+    return `<div class="ferrite-card ${f.type}">
+      <div class="ferrite-name ${f.type}${f.cur?' cur':''}">${f.cur?'◆':f.suit==='best'?'★':''}${f.name}</div>
+      <div class="ferrite-info"><div class="ferrite-freq">${f.type==='mnzn'?'MnZn':'NiZn'}　μ=${f.mu.toLocaleString()}　〜${fmaxStr}</div><div class="ferrite-note">${f.note}</div></div>
+      <div class="suit-badge ${sc}">${sl}</div>
+    </div>`;
+  }).join('');
+}
+renderFerrite();
+</script>
+
+</body>
+</html>
